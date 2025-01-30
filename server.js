@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const { spawn } = require('child_process');
 const path = require('path');
+const treeKill = require('tree-kill');
 
 const app = express();
 app.use(cors());
@@ -10,20 +11,31 @@ app.use(bodyParser.json());
 
 let automationProcess = null;
 
-app.post('/api/start', (req, res) => {
+app.post('/api/start', async (req, res) => {
   const { url, filename } = req.body;
 
-  // Validation (same as before)
+  // Add your validation logic here
+  if (!url || !filename) {
+    return res.status(400).json({ error: 'Missing required parameters' });
+  }
 
   const isWindows = process.platform === 'win32';
   const command = isWindows ? 'npx.cmd' : 'npx';
   const outputPath = path.join(__dirname, 'scripts', filename);
 
   try {
+    // Kill existing process if any
     if (automationProcess) {
-      automationProcess.kill('SIGTERM'); // Kill existing process
+      await new Promise((resolve, reject) => {
+        treeKill(automationProcess.pid, 'SIGINT', (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      automationProcess = null;
     }
 
+    // Start new process
     automationProcess = spawn(command, [
       'playwright',
       'codegen',
@@ -51,18 +63,23 @@ app.post('/api/start', (req, res) => {
     });
 
   } catch (error) {
-    console.error('Spawn error:', error);
+    console.error('Error:', error);
     res.status(500).json({ error: 'Failed to start automation process' });
   }
 });
 
-app.post('/api/stop', (req, res) => {
+app.post('/api/stop', async (req, res) => {
   if (!automationProcess) {
     return res.status(400).json({ error: 'No active automation process' });
   }
 
   try {
-    automationProcess.kill('SIGTERM'); // Terminate the process
+    await new Promise((resolve, reject) => {
+      treeKill(automationProcess.pid, 'SIGINT', (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
     automationProcess = null;
     res.json({ message: 'Automation stopped successfully' });
   } catch (error) {

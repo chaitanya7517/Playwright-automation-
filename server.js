@@ -27,7 +27,10 @@ app.post("/api/start", async (req, res) => {
   const isWindows = process.platform === "win32";
   const command = isWindows ? "npx.cmd" : "npx";
   const outputDir = path.join(__dirname, "scripts", projectType);
-  const outputPath = path.join(outputDir, filename);
+  const outputPath = path.join(
+    outputDir, 
+    filename.endsWith('.spec.js') ? filename : `${filename.replace(/\.js$/, '')}.spec.js`
+  );
 
   try {
     // Create directory if not exists

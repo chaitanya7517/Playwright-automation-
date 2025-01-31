@@ -1,12 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 function App() {
   const [url, setUrl] = useState('');
-  const [filename, setFilename] = useState('test.js');
+  const [filename, setFilename] = useState('test.spec.js');
   const [projectType, setProjectType] = useState('b2c');
   const [isRunning, setIsRunning] = useState(false);
   const [message, setMessage] = useState('');
+  const [urlPresets, setUrlPresets] = useState([]);
+  const [newUrlName, setNewUrlName] = useState('');
+
+  // Check if current URL is new/unsaved
+  const isNewUrl = url && !urlPresets.some(preset => preset.url === url);
+
+  // Load saved URLs on component mount
+  useEffect(() => {
+    const savedUrls = JSON.parse(localStorage.getItem('urlPresets')) || [
+      { name: 'Deepseek', url: 'https://www.deepseek.com' },
+      { name: 'HRX Web', url: 'https://www.hrxweb.com' }
+    ];
+    setUrlPresets(savedUrls);
+  }, []);
 
   const projectOptions = [
     { value: 'b2c', label: 'B2C' },
@@ -15,15 +29,34 @@ function App() {
     { value: 'labs', label: 'Labs' },
   ];
 
+  const handleSaveUrl = () => {
+    if (url && newUrlName) {
+      const newPreset = { name: newUrlName, url };
+      const updatedPresets = [...urlPresets, newPreset];
+      
+      setUrlPresets(updatedPresets);
+      localStorage.setItem('urlPresets', JSON.stringify(updatedPresets));
+      setNewUrlName('');
+      setMessage('URL saved successfully!');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsRunning(true);
     setMessage('Starting automation...');
     
+    // Validate and enforce .spec.js extension
+    let adjustedFilename = filename;
+    if (!adjustedFilename.endsWith('.spec.js')) {
+      adjustedFilename = adjustedFilename.replace(/\.js$/, '') + '.spec.js';
+      setFilename(adjustedFilename);
+    }
+
     try {
       const response = await axios.post('http://localhost:3001/api/start', {
         url,
-        filename,
+        filename: adjustedFilename,
         projectType
       });
       setMessage('Automation started! Interact with the browser window...');
@@ -69,24 +102,60 @@ function App() {
             </select>
           </div>
 
-          {/* Existing URL and Filename fields */}
+          {/* URL Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Website URL
             </label>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              required
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="https://example.com"
-            />
+            <div className="flex flex-col gap-2">
+              <select
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select a saved URL</option>
+                {urlPresets.map((preset) => (
+                  <option key={preset.url} value={preset.url}>
+                    {preset.name} ({preset.url})
+                  </option>
+                ))}
+              </select>
+              <div className="text-xs text-gray-500 text-center">or</div>
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="Enter new URL"
+                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
           </div>
-          
+
+          {/* Save URL Section - Only shows for new URLs */}
+          {isNewUrl && (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newUrlName}
+                onChange={(e) => setNewUrlName(e.target.value)}
+                placeholder="Name for this URL"
+                className="flex-1 p-2 border rounded-md"
+              />
+              <button
+                type="button"
+                onClick={handleSaveUrl}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
+                disabled={!newUrlName}
+              >
+                Save
+              </button>
+            </div>
+          )}
+
+          {/* Filename Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Output Filename
+              Output Filename (must end with .spec.js)
             </label>
             <input
               type="text"
@@ -94,11 +163,11 @@ function App() {
               onChange={(e) => setFilename(e.target.value)}
               required
               className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="test.js"
+              placeholder="test.spec.js"
             />
           </div>
           
-          {/* Buttons remain same */}
+          {/* Control Buttons */}
           <div className="flex space-x-4">
             <button
               type="submit"
@@ -107,7 +176,6 @@ function App() {
             >
               Start Automation
             </button>
-            
             <button
               type="button"
               onClick={handleStop}

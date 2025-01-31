@@ -1,11 +1,10 @@
-// client/src/components/AutomationForm.jsx
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import UrlSelector from './UrlSelector';
 import FolderSelector from './FolderSelector';
 import MessageDisplay from './MessageDisplay';
 
-const AutomationForm = () => {
+function AutomationForm() {
   const [url, setUrl] = useState('');
   const [filename, setFilename] = useState('test.spec.js');
   const [projectType, setProjectType] = useState('b2c');
@@ -38,7 +37,6 @@ const AutomationForm = () => {
     if (url && newUrlName) {
       const newPreset = { name: newUrlName, url };
       const updatedPresets = [...urlPresets, newPreset];
-      
       setUrlPresets(updatedPresets);
       localStorage.setItem('urlPresets', JSON.stringify(updatedPresets));
       setNewUrlName('');
@@ -48,7 +46,6 @@ const AutomationForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     let folder = selectedFolder;
     if (folder === 'new') {
       folder = newFolder.trim();
@@ -57,17 +54,13 @@ const AutomationForm = () => {
         return;
       }
     }
-
-    // Ensure filename ends with .spec.js
     if (!filename.endsWith('.spec.js')) {
       setFilename(prev => `${prev}.spec.js`);
     }
-
     setIsRunning(true);
     setMessage('Starting automation...');
-
     try {
-      const response = await axios.post('http://localhost:3001/api/start', {
+      await axios.post('http://localhost:3001/api/start', {
         url,
         filename,
         projectType,
@@ -92,11 +85,8 @@ const AutomationForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Project Type Dropdown */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Project Type
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Project Type</label>
         <select
           value={projectType}
           onChange={(e) => setProjectType(e.target.value)}
@@ -109,8 +99,6 @@ const AutomationForm = () => {
           ))}
         </select>
       </div>
-
-      {/* Folder Selection */}
       <FolderSelector
         selectedFolder={selectedFolder}
         setSelectedFolder={setSelectedFolder}
@@ -118,15 +106,11 @@ const AutomationForm = () => {
         newFolder={newFolder}
         setNewFolder={setNewFolder}
       />
-
-      {/* URL Selection */}
       <UrlSelector
         url={url}
         setUrl={setUrl}
         urlPresets={urlPresets}
       />
-
-      {/* Save URL Section - Only shows for new URLs */}
       {isNewUrl && (
         <div className="flex gap-2">
           <input
@@ -146,12 +130,8 @@ const AutomationForm = () => {
           </button>
         </div>
       )}
-
-      {/* Filename Input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Output Filename
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Output Filename</label>
         <input
           type="text"
           value={filename}
@@ -161,8 +141,6 @@ const AutomationForm = () => {
           placeholder="test.spec.js"
         />
       </div>
-      
-      {/* Control Buttons */}
       <div className="flex space-x-4">
         <button
           type="submit"
@@ -180,11 +158,9 @@ const AutomationForm = () => {
           Stop Automation
         </button>
       </div>
-
-      {/* Message Display */}
       <MessageDisplay message={message} />
     </form>
   );
-};
+}
 
 export default AutomationForm;

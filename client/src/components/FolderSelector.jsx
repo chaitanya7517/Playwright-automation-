@@ -1,20 +1,15 @@
-// client/src/components/FolderSelector.jsx
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 
-const FolderSelector = ({ selectedFolder, setSelectedFolder, existingFolders }) => {
-  const [newFolder, setNewFolder] = useState('');
-
+function FolderSelector({ selectedFolder, setSelectedFolder, existingFolders, newFolder, setNewFolder }) {
   useEffect(() => {
     if (selectedFolder !== 'new') {
       setNewFolder('');
     }
-  }, [selectedFolder]);
+  }, [selectedFolder, setNewFolder]);
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Select Folder
-      </label>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Select Folder</label>
       <div className="flex flex-col gap-2">
         <select
           value={selectedFolder}
@@ -41,6 +36,6 @@ const FolderSelector = ({ selectedFolder, setSelectedFolder, existingFolders }) 
       </div>
     </div>
   );
-};
+}
 
 export default FolderSelector;

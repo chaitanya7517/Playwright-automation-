@@ -1,10 +1,7 @@
-// client/src/components/UrlSelector.jsx
-const UrlSelector = ({ url, setUrl, urlPresets }) => {
+function UrlSelector({ url, setUrl, urlPresets }) {
     return (
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Website URL
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Website URL</label>
         <div className="flex flex-col gap-2">
           <select
             value={url}
@@ -29,7 +26,7 @@ const UrlSelector = ({ url, setUrl, urlPresets }) => {
         </div>
       </div>
     );
-  };
+  }
   
   export default UrlSelector;
   

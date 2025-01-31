@@ -3,7 +3,7 @@ import axios from 'axios';
 
 function App() {
   const [url, setUrl] = useState('');
-  const [filename, setFilename] = useState('test.js');
+  const [filename, setFilename] = useState('test.spec.js');
   const [projectType, setProjectType] = useState('b2c');
   const [isRunning, setIsRunning] = useState(false);
   const [message, setMessage] = useState('');
@@ -46,10 +46,17 @@ function App() {
     setIsRunning(true);
     setMessage('Starting automation...');
     
+    // Validate and enforce .spec.js extension
+    let adjustedFilename = filename;
+    if (!adjustedFilename.endsWith('.spec.js')) {
+      adjustedFilename = adjustedFilename.replace(/\.js$/, '') + '.spec.js';
+      setFilename(adjustedFilename);
+    }
+
     try {
       const response = await axios.post('http://localhost:3001/api/start', {
         url,
-        filename,
+        filename: adjustedFilename,
         projectType
       });
       setMessage('Automation started! Interact with the browser window...');
@@ -148,7 +155,7 @@ function App() {
           {/* Filename Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Output Filename
+              Output Filename (must end with .spec.js)
             </label>
             <input
               type="text"
@@ -156,7 +163,7 @@ function App() {
               onChange={(e) => setFilename(e.target.value)}
               required
               className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="test.js"
+              placeholder="test.spec.js"
             />
           </div>
           

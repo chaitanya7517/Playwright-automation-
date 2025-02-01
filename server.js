@@ -202,6 +202,39 @@ app.get('/api/files/:projectType', (req, res) => {
 });
 
 
+// Add new endpoints
+app.post('/api/run-tests', (req, res) => {
+  const { files } = req.body;
+  if (!files || !files.length) {
+    return res.status(400).json({ error: 'No files selected' });
+  }
+
+  const command = `npx playwright test ${files.join(' ')}`;
+  const results = { output: '', error: '' };
+
+  const child = exec(command, { cwd: __dirname }, (error, stdout, stderr) => {
+    if (error) {
+      results.error = error.message;
+    }
+    results.output = stdout;
+    results.error = stderr;
+  });
+
+  child.on('exit', () => {
+    res.json(results);
+  });
+});
+
+app.get('/api/show-report', (req, res) => {
+  exec('npx playwright show-report', { cwd: __dirname }, (error) => {
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+    res.json({ message: 'Report should open automatically' });
+  });
+});
+
+
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

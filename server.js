@@ -5,6 +5,7 @@ const { spawn } = require("child_process");
 const path = require("path");
 const treeKill = require("tree-kill");
 const fs = require("fs");
+const { exec } = require('child_process');
 
 const app = express();
 app.use(cors());
@@ -98,6 +99,108 @@ app.post("/api/stop", async (req, res) => {
     res.status(500).json({ error: "Failed to stop automation" });
   }
 });
+
+
+// Add these new endpoints after the existing endpoints
+
+app.get("/api/tests", (req, res) => {
+  const scriptsDir = path.join(__dirname, "scripts");
+  const projectTypes = validProjectTypes;
+  
+  const testStructure = [];
+  
+  projectTypes.forEach(projectType => {
+    const projectDir = path.join(scriptsDir, projectType);
+    if (fs.existsSync(projectDir)) {
+      const files = fs.readdirSync(projectDir)
+        .filter(file => file.endsWith('.spec.js'))
+        .map(file => ({
+          name: file,
+          path: path.join(projectType, file)
+        }));
+      
+      testStructure.push({
+        projectType,
+        files
+      });
+    }
+  });
+
+  res.json(testStructure);
+});
+
+app.post("/api/run", async (req, res) => {
+  const { files } = req.body;
+  
+  if (!files || !Array.isArray(files)) {
+    return res.status(400).json({ error: "Invalid files parameter" });
+  }
+
+  const isWindows = process.platform === "win32";
+  const command = isWindows ? "npx.cmd" : "npx";
+  const testPaths = files.map(filePath => 
+    path.join("scripts", filePath)
+  );
+
+  try {
+    const args = ["playwright", "test", ...testPaths];
+    
+    const testProcess = spawn(command, args, {
+      stdio: "pipe",
+      shell: isWindows
+    });
+
+    let output = '';
+    
+    testProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    testProcess.stderr.on('data', (data) => {
+      output += data.toString();
+    });
+
+    testProcess.on('close', (code) => {
+      res.json({
+        success: code === 0,
+        exitCode: code,
+        output
+      });
+    });
+
+  } catch (error) {
+    console.error("Error running tests:", error);
+    res.status(500).json({ error: "Failed to execute tests" });
+  }
+});
+
+// Get list of available projects
+app.get('/api/projects', (req, res) => {
+  res.json(validProjectTypes);
+});
+
+// Get list of files in a project
+app.get('/api/files/:projectType', (req, res) => {
+  const { projectType } = req.params;
+  if (!validProjectTypes.includes(projectType)) {
+    return res.status(400).json({ error: 'Invalid project type' });
+  }
+
+  const projectPath = path.join(__dirname, 'scripts', projectType);
+
+  fs.readdir(projectPath, (err, files) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        return res.json([]); // Return empty array if directory doesn't exist
+      }
+      return res.status(500).json({ error: 'Error reading directory' });
+    }
+
+    const specFiles = files.filter(file => file.endsWith('.spec.js'));
+    res.json(specFiles);
+  });
+});
+
 
 const PORT = 3001;
 app.listen(PORT, () => {

@@ -11,6 +11,9 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+const reportPath = path.join(__dirname, "playwright-report");
+app.use('/report', express.static(reportPath));
+
 let automationProcess = null;
 const validProjectTypes = ["b2c", "b2b", "drx", "labs"];
 
@@ -29,8 +32,8 @@ app.post("/api/start", async (req, res) => {
   const command = isWindows ? "npx.cmd" : "npx";
   const outputDir = path.join(__dirname, "scripts", projectType);
   const outputPath = path.join(
-    outputDir, 
-    filename.endsWith('.spec.js') ? filename : `${filename.replace(/\.js$/, '')}.spec.js`
+      outputDir,
+      filename.endsWith('.spec.js') ? filename : `${filename.replace(/\.js$/, '')}.spec.js`
   );
 
   try {
@@ -52,12 +55,12 @@ app.post("/api/start", async (req, res) => {
 
     // Start new process
     automationProcess = spawn(
-      command,
-      ["playwright", "codegen", "--output", outputPath, url],
-      {
-        stdio: "inherit",
-        shell: isWindows,
-      }
+        command,
+        ["playwright", "codegen", "--output", outputPath, url],
+        {
+          stdio: "inherit",
+          shell: isWindows,
+        }
     );
 
     automationProcess.on("error", (err) => {
@@ -100,25 +103,24 @@ app.post("/api/stop", async (req, res) => {
   }
 });
 
-
 // Add these new endpoints after the existing endpoints
 
 app.get("/api/tests", (req, res) => {
   const scriptsDir = path.join(__dirname, "scripts");
   const projectTypes = validProjectTypes;
-  
+
   const testStructure = [];
-  
+
   projectTypes.forEach(projectType => {
     const projectDir = path.join(scriptsDir, projectType);
     if (fs.existsSync(projectDir)) {
       const files = fs.readdirSync(projectDir)
-        .filter(file => file.endsWith('.spec.js'))
-        .map(file => ({
-          name: file,
-          path: path.join(projectType, file)
-        }));
-      
+          .filter(file => file.endsWith('.spec.js'))
+          .map(file => ({
+            name: file,
+            path: path.join(projectType, file)
+          }));
+
       testStructure.push({
         projectType,
         files
@@ -131,27 +133,27 @@ app.get("/api/tests", (req, res) => {
 
 app.post("/api/run", async (req, res) => {
   const { files } = req.body;
-  
+
   if (!files || !Array.isArray(files)) {
     return res.status(400).json({ error: "Invalid files parameter" });
   }
 
   const isWindows = process.platform === "win32";
   const command = isWindows ? "npx.cmd" : "npx";
-  const testPaths = files.map(filePath => 
-    path.join("scripts", filePath)
+  const testPaths = files.map(filePath =>
+      path.join("scripts", filePath)
   );
 
   try {
     const args = ["playwright", "test", ...testPaths];
-    
+
     const testProcess = spawn(command, args, {
       stdio: "pipe",
       shell: isWindows
     });
 
     let output = '';
-    
+
     testProcess.stdout.on('data', (data) => {
       output += data.toString();
     });
@@ -201,39 +203,38 @@ app.get('/api/files/:projectType', (req, res) => {
   });
 });
 
-
-// Add new endpoints
-app.post('/api/run-tests', (req, res) => {
+// Add this before existing endpoints
+app.post("/api/run-tests", (req, res) => {
   const { files } = req.body;
   if (!files || !files.length) {
     return res.status(400).json({ error: 'No files selected' });
   }
 
-  const command = `npx playwright test ${files.join(' ')}`;
+  const command = `npx playwright test --reporter=html ${files.join(' ')}`;
   const results = { output: '', error: '' };
 
   const child = exec(command, { cwd: __dirname }, (error, stdout, stderr) => {
-    if (error) {
-      results.error = error.message;
-    }
+    if (error) results.error = error.message;
     results.output = stdout;
     results.error = stderr;
   });
 
-  child.on('exit', () => {
-    res.json(results);
-  });
+  child.on('exit', () => res.json(results));
 });
 
-app.get('/api/show-report', (req, res) => {
-  exec('npx playwright show-report', { cwd: __dirname }, (error) => {
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-    res.json({ message: 'Report should open automatically' });
-  });
+app.get("/api/show-report", (req, res) => {
+  try {
+    // Generate fresh report
+    exec('npx playwright show-report', { cwd: __dirname }, (error) => {
+      if (error) throw error;
+      res.json({
+        reportUrl: `http://localhost:3001/report/index.html`
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
-
 
 const PORT = 3001;
 app.listen(PORT, () => {

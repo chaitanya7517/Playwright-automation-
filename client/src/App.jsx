@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import path from 'path-browserify';
 
@@ -15,6 +15,7 @@ function App() {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [testResults, setTestResults] = useState('');
     const [isAllSelected, setIsAllSelected] = useState(false);
+    const [reportUrl, setReportUrl] = useState('');
 
     // Check if current URL is new/unsaved
     const isNewUrl = url && !urlPresets.some(preset => preset.url === url);
@@ -22,8 +23,8 @@ function App() {
     // Load saved URLs on component mount
     useEffect(() => {
         const savedUrls = JSON.parse(localStorage.getItem('urlPresets')) || [
-            {name: 'Deepseek', url: 'https://www.deepseek.com'},
-            {name: 'HRX Web', url: 'https://www.hrxweb.com'}
+            { name: 'Deepseek', url: 'https://www.deepseek.com' },
+            { name: 'HRX Web', url: 'https://www.hrxweb.com' }
         ];
         setUrlPresets(savedUrls);
     }, []);
@@ -49,7 +50,7 @@ function App() {
 
     const handleSaveUrl = () => {
         if (url && newUrlName) {
-            const newPreset = {name: newUrlName, url};
+            const newPreset = { name: newUrlName, url };
             const updatedPresets = [...urlPresets, newPreset];
 
             setUrlPresets(updatedPresets);
@@ -134,14 +135,17 @@ function App() {
             setMessage('Tests completed!');
         } catch (error) {
             setMessage(error.response?.data?.error || 'Failed to run tests');
+        } finally {
         }
     };
 
     // Show test report
     const handleShowReport = async () => {
         try {
-            await axios.get('http://localhost:3001/api/show-report');
-            setMessage('Report should open in your default browser');
+            const response = await axios.get('http://localhost:3001/api/show-report');
+            setReportUrl(response.data.reportUrl);
+            setMessage('Report generated successfully');
+            window.open(response.data.reportUrl, '_blank');
         } catch (error) {
             setMessage(error.response?.data?.error || 'Failed to show report');
         }
@@ -190,7 +194,7 @@ function App() {
                                 <p className="text-gray-500 text-sm">No files found</p>
                             ) : (
                                 files.map(file => {
-                                    const fullPath = path.join('scripts', selectedProject, file);
+                                    const filePath = path.join('scripts', selectedProject, file);
                                     return (
                                         <div
                                             key={file}
@@ -198,12 +202,12 @@ function App() {
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={selectedFiles.includes(fullPath)}
-                                                onChange={() => toggleFile(fullPath)}
+                                                checked={selectedFiles.includes(filePath)}
+                                                onChange={() => toggleFile(filePath)}
                                                 className="mr-2"
                                             />
                                             <span onClick={() => setFilename(file)}>
-                                              📄 {file}
+                                                📄 {file}
                                             </span>
                                         </div>
                                     );
@@ -221,27 +225,43 @@ function App() {
                             <button
                                 type="button"
                                 onClick={handleRunTests}
-                                disabled={selectedFiles.length === 0}
+                                disabled={selectedFiles.length === 0} // Updated condition
                                 className="px-4 py-2 my-5 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400"
                             >
                                 Run Selected Tests
                             </button>
-                            <button
-                                type="button"
-                                onClick={handleShowReport}
-                                className="px-4 py-2 my-5 bg-teal-600 text-white rounded-md hover:bg-teal-700"
-                            >
-                                Show Report
-                            </button>
+                            {/*<button*/}
+                            {/*    type="button"*/}
+                            {/*    onClick={handleShowReport}*/}
+                            {/*    className="px-4 py-2 my-5 bg-teal-600 text-white rounded-md hover:bg-teal-700"*/}
+                            {/*>*/}
+                            {/*    Show Report*/}
+                            {/*</button>*/}
                         </div>
                         {testResults && (
                             <div className="mt-4 p-3 bg-gray-50 rounded-md">
-                              <pre className="whitespace-pre-wrap text-sm">
-                                {testResults}
-                              </pre>
+                                <pre className="whitespace-pre-wrap text-sm">
+                                    {testResults}
+                                </pre>
                             </div>
                         )}
                     </div>
+
+                    {reportUrl && (
+                        <div className="mt-4 p-3 bg-green-50 rounded-md">
+                            <p className="text-sm text-green-800">
+                                Report available at: {' '}
+                                <a
+                                    href={reportUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                >
+                                    {reportUrl}
+                                </a>
+                            </p>
+                        </div>
+                    )}
 
                     {/* Main Form */}
                     <div className="max-w-md mx-auto">

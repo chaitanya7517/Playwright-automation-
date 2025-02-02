@@ -225,23 +225,23 @@ function App() {
                             <button
                                 type="button"
                                 onClick={handleRunTests}
-                                disabled={selectedFiles.length === 0} // Updated condition
+                                disabled={selectedFiles.length === 0}
                                 className="px-4 py-2 my-5 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400"
                             >
                                 Run Selected Tests
                             </button>
-                            {/*<button*/}
-                            {/*    type="button"*/}
-                            {/*    onClick={handleShowReport}*/}
-                            {/*    className="px-4 py-2 my-5 bg-teal-600 text-white rounded-md hover:bg-teal-700"*/}
-                            {/*>*/}
-                            {/*    Show Report*/}
-                            {/*</button>*/}
+                            <button
+                                type="button"
+                                onClick={handleShowReport}
+                                className="px-4 py-2 my-5 bg-teal-600 text-white rounded-md hover:bg-teal-700"
+                            >
+                                Show Report
+                            </button>
                         </div>
                         {testResults && (
                             <div className="mt-4 p-3 bg-gray-50 rounded-md">
                                 <pre className="whitespace-pre-wrap text-sm">
-                                    {testResults}
+                                  {testResults}
                                 </pre>
                             </div>
                         )}

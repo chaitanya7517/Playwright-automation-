@@ -12,7 +12,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 const reportPath = path.join(__dirname, "playwright-report");
-app.use('/report', express.static(reportPath));
+app.use("/playwright-report", express.static(reportPath));
 
 let automationProcess = null;
 const validProjectTypes = ["b2c", "b2b", "drx", "labs"];
@@ -203,15 +203,14 @@ app.get('/api/files/:projectType', (req, res) => {
   });
 });
 
-// Add this before existing endpoints
 app.post("/api/run-tests", (req, res) => {
   const { files } = req.body;
   if (!files || !files.length) {
-    return res.status(400).json({ error: 'No files selected' });
+    return res.status(400).json({ error: "No files selected" });
   }
 
-  const command = `npx playwright test --reporter=html ${files.join(' ')}`;
-  const results = { output: '', error: '' };
+  const command = `npx playwright test ${files.join(" ")} --reporter=html`;
+  const results = { output: "", error: "" };
 
   const child = exec(command, { cwd: __dirname }, (error, stdout, stderr) => {
     if (error) results.error = error.message;
@@ -219,17 +218,20 @@ app.post("/api/run-tests", (req, res) => {
     results.error = stderr;
   });
 
-  child.on('exit', () => res.json(results));
+  child.on("exit", () => res.json(results));
 });
 
+// Endpoint to get the report URL
 app.get("/api/show-report", (req, res) => {
   try {
-    // Generate fresh report
-    exec('npx playwright show-report', { cwd: __dirname }, (error) => {
-      if (error) throw error;
-      res.json({
-        reportUrl: `http://localhost:3001/report/index.html`
-      });
+    // Ensure the report directory exists
+    if (!fs.existsSync(reportPath)) {
+      return res.status(404).json({ error: "Report not found. Run tests first." });
+    }
+
+    // Return the URL to the report
+    res.json({
+      reportUrl: `http://localhost:63342/Playwright-automation-/playwright-report/index.html`,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -16,6 +16,7 @@ function App() {
     const [testResults, setTestResults] = useState('');
     const [isAllSelected, setIsAllSelected] = useState(false);
     const [reportUrl, setReportUrl] = useState('');
+    const [isTestsRunning, setIsTestsRunning] = useState(false);
 
     // Check if current URL is new/unsaved
     const isNewUrl = url && !urlPresets.some(preset => preset.url === url);
@@ -122,6 +123,7 @@ function App() {
         }
 
         try {
+            setIsTestsRunning(true);
             setMessage('Running tests...');
             const response = await axios.post('http://localhost:3001/api/run-tests', {
                 files: selectedFiles
@@ -136,6 +138,7 @@ function App() {
         } catch (error) {
             setMessage(error.response?.data?.error || 'Failed to run tests');
         } finally {
+            setIsTestsRunning(false);
         }
     };
 
@@ -143,9 +146,12 @@ function App() {
     const handleShowReport = async () => {
         try {
             const response = await axios.get('http://localhost:3001/api/show-report');
-            setReportUrl(response.data.reportUrl);
-            setMessage('Report generated successfully');
-            window.open(response.data.reportUrl, '_blank');
+            const { reportUrl } = response.data;
+            if (reportUrl) {
+                setReportUrl(reportUrl);
+                setMessage('Report generated successfully');
+                window.open(reportUrl, "_blank");
+            }
         } catch (error) {
             setMessage(error.response?.data?.error || 'Failed to show report');
         }
@@ -220,12 +226,12 @@ function App() {
                                 onClick={toggleAllFiles}
                                 className="px-4 py-2 my-5 bg-gray-600 text-white rounded-md hover:bg-gray-700"
                             >
-                                {isAllSelected ? 'Deselect All' : 'Select All'}
+                                {isAllSelected ? "Deselect All" : "Select All"}
                             </button>
                             <button
                                 type="button"
                                 onClick={handleRunTests}
-                                disabled={selectedFiles.length === 0}
+                                disabled={selectedFiles.length === 0 || isTestsRunning} // Disable while running
                                 className="px-4 py-2 my-5 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400"
                             >
                                 Run Selected Tests
@@ -233,7 +239,8 @@ function App() {
                             <button
                                 type="button"
                                 onClick={handleShowReport}
-                                className="px-4 py-2 my-5 bg-teal-600 text-white rounded-md hover:bg-teal-700"
+                                disabled={isTestsRunning} // Disable while running or if no results
+                                className="px-4 py-2 my-5 bg-teal-600 text-white rounded-md hover:bg-teal-700 disabled:bg-gray-400"
                             >
                                 Show Report
                             </button>

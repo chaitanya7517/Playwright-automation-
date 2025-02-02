@@ -11,6 +11,8 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+const PORT = 3001;
+
 const reportPath = path.join(__dirname, "playwright-report");
 app.use("/playwright-report", express.static(reportPath));
 
@@ -210,6 +212,7 @@ app.post("/api/run-tests", (req, res) => {
   }
 
   const command = `npx playwright test ${files.join(" ")} --reporter=html`;
+
   const results = { output: "", error: "" };
 
   const child = exec(command, { cwd: __dirname }, (error, stdout, stderr) => {
@@ -218,7 +221,9 @@ app.post("/api/run-tests", (req, res) => {
     results.error = stderr;
   });
 
-  child.on("exit", () => res.json(results));
+  child.on("exit", (code) => {
+    res.json(results);
+  });
 });
 
 // Endpoint to get the report URL
@@ -231,14 +236,13 @@ app.get("/api/show-report", (req, res) => {
 
     // Return the URL to the report
     res.json({
-      reportUrl: `http://localhost:63342/Playwright-automation-/playwright-report/index.html`,
+      reportUrl: `http://localhost:${PORT}/playwright-report/index.html`,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
